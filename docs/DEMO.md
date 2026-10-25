@@ -1,0 +1,123 @@
+# Live demo script
+
+Status: **final, v2** (rule P of Amendment 4: all seven pre-registered criteria passed, so the demo shows v2). Rehearsed four ways on 2026-10-19 (R1 headless with the LLM, R2 with the keys removed, R3 by the presenter in a real browser, R3b automated in the real dashboard), then R4 by the presenter in a real browser, which is **partial validation, not a pass** (`docs/results/demo_rehearsal_R4.md`). R1 to R3b, including what went wrong, are in `docs/results/demo_rehearsals.md`. Rehearsal results are kept apart from the frozen v2 benchmark statistics and enter no evaluated count. **Deadlines:** R4 ran after the assumed 21:10 IST rehearsal cutoff and finished after the assumed 23:10 IST freeze; this paragraph and the R4 corrections below were written after the freeze. **No screen recording of R4 exists**, so there is no fallback video. R5 (presenter, 20 Oct 00:24 to 01:05 IST) is also **partial** (`docs/results/demo_rehearsal_R5.md`): one approval from the dashboard recovered, with the capture showing the brain's offer and the dashboard card in the same seconds; two earlier proposals expired with visibility unresolved (observer not watching, no capture yet); the unseen fault abstained. Reject by hand and a timed five-minute sequence remain for R5b. For any further rehearsal, run `python scripts\approval_capture.py` in a separate window before the first `start`. Every v2 caveat is in one place: `docs/EVALUATION.md`, section "Canonical methodology, results and limitations: benchmark v2".
+
+v2 is "fixes for the failures v1 exposed, tested on fresh seeds", not "the model is better". Say this once, early.
+
+<!-- gen:demo_v2 -->
+**Numbers to quote (v2, filled from `docs/results/benchmark_v2.md`; caveats in `docs/EVALUATION.md`, canonical section):**
+
+| say | value | say alongside it |
+|---|---|---|
+| supported faults, autopilot: recovered by its own check | 18/18 | 18 runs, 3 per fault type: "no failure observed", not a rate |
+| supported faults, ask-first: recovered | 18/18 | same sample size |
+| healthy runs, autopilot: incidents opened | 1/24 | the threshold-restart script on the same seeds: 6/24 |
+| healthy runs, autopilot: actions executed | 0/24 | 24 runs cannot rule out a rate of several percent |
+| mean detection time, autopilot | 11.78 s | v1 was 12.1 s: a tie within noise |
+| mean failed-request %, autopilot (independent measure) | 11.15% | no same-seed no-action reference in v2; not comparable with v1 |
+| unseen fault (cpu_burn), autopilot abstained | 2/3 in v2, 4/5 in v1 | different seeds, never pooled |
+
+**The unseen-fault segment (labelled as such, ask-first mode):** the dashboard's **Start unseen-fault segment** button (terminal fallback: `python scripts/demo_challenge.py start --unseen`). Say before it starts: "this is a fault type EternalAI was never trained on. In our tests it abstained in 2/3 v2 runs and 4/5 v1 runs, and in one v2 run (seed 426) it chose the wrong service: it ranked the true target 3rd, did not flag the window as novel, and restarted `inventory` while the fault was on `orders`; failed requests were 27.71% and the checkout probes 0/4. We do not claim it abstains on unseen faults. That is why this segment runs in ask-first mode: it proposes, a human decides."
+
+**If a judge picks an unseen fault while the autopilot is on (honest answer):** "The autopilot may abstain, escalate and keep the evidence, which is what it did in 2/3 of our v2 runs and 4/5 of our v1 runs of one unseen fault type. It may also act on the wrong service, which it did once in v2 (seed 426). We did not measure how often on other faults, and we do not claim it knows when to stop. For an unseen fault, switch to ask-first so a human sees the proposed service and runbook before anything runs. On screen a human sees the proposed service and runbook, the ranked-causes chart with its margin, and which services the map shows as anomalous. In the rehearsals that ran it (R1, R3, R3b, R4: one run each, not a rate) the system abstained every time, so we have never seen a wrong-target proposal on the dashboard and we do not claim a human would spot one."
+<!-- /gen:demo_v2 -->
+
+**The moment to build towards:** *the service restarted, and EternalAI's own checkout passed again.* Be exact: the banner says "Verified by EternalAI's own synthetic checkout", an internal verification (the tagline is "Detect. Diagnose. Recover. Verify."; the old "Predict. … Prove." is kept only in `docs/screenshots/tagline_default_with_forecast_caveat_header.png` for reference). The independent measure is the load generator's failed-request %, which the evaluator reads; say it is an impact metric, not proof.
+
+> **Start every run from the dashboard's Demo mode panel.** **Start hidden challenge** draws one scenario from the six supported faults and the two healthy changes (never the unseen fault); **Start unseen-fault segment** runs the labelled unseen fault and is refused unless the mode is Ask first; **Reveal** shows what was injected once the run is finished, with a one-line summary (scenario, target, recovered or not, failed-request %). The run indicator above the buttons shows **run in progress**, **restoring** (scored; the evaluator is still restoring the stack) or **finished**; the start buttons stay disabled until the run has finished, so a second start cannot hit the evaluator's 409. The old "Start blind challenge" button, which drew from all nine scenarios including the unseen fault, has been removed from the page.
+>
+> **Terminal fallback only:** `python scripts\demo_challenge.py start` / `start --unseen` / `reveal <RUN_ID>` does the same through the evaluator, for when the dashboard is unusable. **Never mix the two methods in one rehearsal or demo**: the Demo mode indicator only knows about runs it started, so a run started from the terminal is invisible to it (its start would then be refused with "The evaluator is busy with another run").
+>
+> **Limits of Demo mode:** the alert sound for a new proposal plays only after a click or keypress on the page (typing the token or choosing the mode is enough; browsers block sound before that), while the page flash always works; the run indicator only tracks runs started from this dashboard, and restarting the dashboard container forgets them; run summaries are English only; the hidden scenario is drawn by the dashboard server (with `secrets`, never sent to the page) and passed to the evaluator, which keeps the truth until the run is scored.
+
+## 0. Startup (exact procedure, as rehearsed)
+
+1. `.env` in the checkout you demo from (`D:\eAI\eAI-release`) holds `GEMINI_API_KEY` and `ETERNALAI_APPROVAL_TOKEN` (a real secret, typed by hand; never `change-me`). Never print or commit `.env`.
+2. Memory checklist (section 0b) first.
+3. PowerShell window A:
+   ```
+   cd D:\eAI\eAI-release
+   $env:PATH = "D:\eAI\eAI-workspace\eAI\.venv\Scripts;C:\Program Files\Docker\Docker\resources\bin;" + $env:PATH
+   python scripts\memguard.py
+   powershell -ExecutionPolicy Bypass -File scripts\demo.ps1 -ConfirmReset -ExportDir results/demo-export/live
+   ```
+   The launcher refuses while a benchmark process runs, exports the scorecard with checksums, resets only the scorecard volume, rebuilds the dashboard image, starts the stack under T3 (trace exporter off, no Jaeger) with the dashboard on and `gemini-3.5-flash-lite` for reports, restocks the inventory, and runs the preflight. Wait for **8 PASS lines** (about 90 s). Any FAIL: do not demo; see the fallback plan.
+4. PowerShell window B (fallback only): the same `cd` and `$env:PATH` lines, kept open in case the Demo mode panel is unusable. Runs are normally started and revealed from the dashboard.
+5. Browser: http://localhost:8050. Type the token **by hand** into the token field (a pasted value with extra text is refused: "invalid approval token" or "Token contains invalid characters"). Choose **Ask first**; no message under the selector means the mode change was not refused (see item 8 for what verifies the token).
+6. Before the export is touched by any reset, the frozen benchmark checksums must verify: `results/benchmark-v2/SHA256SUMS` and `SHA256SUMS-rerun` (0 mismatches in every rehearsal).
+
+7. Incidents opened while no challenge was running stay in the dashboard until a challenge opens a newer one (before R4: three, all "insufficient evidence", abstained, escalated, no action, cause unverified; `docs/results/idle_incidents_pre_R4.md`, which also gives a read-only command to list incidents with id and opening time). They are not fault detections. By the end of R4 there were seven incidents outside every challenge's scoring window (`docs/results/demo_rehearsal_R4.md`), cause unknown. No recovery actions executed for these incidents; their operational impact was not evaluated. If a judge asks: "Those are incidents EternalAI opened while no fault was injected: it flagged unusual metrics, abstained with 'insufficient evidence', escalated, and took no action. We don't know their cause. No recovery actions ran; their operational impact wasn't evaluated. We list all seven in the R4 report rather than hide them."
+8. The approval token cannot be checked by a non-mutating call: the brain has no authenticated read endpoint, and the preflight only checks that a non-placeholder token is set. No message under the mode selector is **not** proof that the token works. The token counts as verified only when an authenticated request succeeds, as in R4: an approval executed with the audit record `human:dashboard, ok=True`.
+
+## 0b. Demo-day memory checklist (16.8 GB machine; the rehearsals ran with 1.55 to 3.4 GB free)
+
+1. **Close everything except Docker Desktop and the one browser window for the dashboard.** No IDE, no second browser profile, no chat or video apps, no other Docker projects.
+2. **Close the Claude Code CLI session during the actual demo.** It and its background tools use memory, and a background-task reaper kills idle jobs when host RAM is low.
+3. **Free-RAM check before starting:** `python scripts\memguard.py`. Start only above 2 GB free; below that, close more apps first.
+4. After the 8 PASS lines, run `python scripts\stock_gate.py --check` once more right before presenting.
+5. Do not run the launcher during the presentation (a restart takes about 90 s).
+6. If free RAM drops below 1 GB or Docker stops, go to the fallback plan (results tables and screenshots; there is no recording).
+
+## 1. Presentation sequence: a 5-minute target, not a measured runtime
+
+Five minutes is the presentation target. It has **not** been demonstrated end to end: no rehearsal ran this sequence against a clock. What R4 measured, per phase (`docs/results/demo_rehearsal_R4.md`):
+
+| phase | measured in R4 | notes |
+|---|---|---|
+| evaluator preparation before injection | not recorded for R4 | the evaluator waits 45 s, or 200 s after a deploy or rollback; this is not detection time |
+| injection to incident (detection) | 5.7 s, 8.2 s, 7.4 s | evaluator `time_to_detect_s` |
+| incident to proposal pending | 7.6 s (disk_fill), 7.6 s (error_spike) | brain incident timeline |
+| proposal to human approval | 65.4 s (approved); 121.2 s with no approval (expired) | human delay; the window is 120 s |
+| approval to verified recovery | 23.2 s | the brain's own synthetic checkout |
+| injection to verified recovery | 104.3 s | evaluator `time_to_verified_recovery_s`, one run |
+
+A supported challenge with approval therefore takes about 2 to 5 minutes by itself depending on the evaluator's wait, so the timings in the table below are targets and may overrun.
+
+| target min | do (dashboard) | say |
+|---|---|---|
+| 0:00-0:40 | Dashboard: point at the four green nodes, the mode pill "ask-first", "Models loaded from saved artifacts". | "EternalAI watches a four-service shop, diagnoses with trained models, acts only through four allow-listed runbooks under a policy, and checks the user journey before it calls anything recovered. The faults come from an independent evaluator we wrote; the truth is hidden from the system." |
+| 0:40-2:40 | Demo mode: **Start hidden challenge** (indicator: run in progress). The evaluator waits 45 s before injecting (200 s if the previous run changed the release); that wait is not part of detection, proposal, approval or recovery time. After the injection the map turns amber and the Approval queue card appears (R3b: at least 12.3 s and at least 18.6 s after injection; these are lower bounds, not exact measurements). Read the card aloud. Click **Approve** promptly: **the approval window is 120 s**, after which the proposal expires unexecuted. Wait for the green banner (30.0 s after the click in R3b). When the indicator says **finished**, click **Reveal** and read the summary line. | At the card: "It proposes `<runbook> → <service>`, low risk, and shows its ranked causes with the margin. A human decides. A proposal waits 120 seconds for approval and then expires, so I approve it now." At the banner: "EternalAI's own checkout passed again. The independent number is the failed-request percentage, which the evaluator measured." At the reveal: read the scenario and target, then failed-request %. If it was wrong, say so. If the draw was healthy: "No incident is the correct outcome for a healthy change." |
+| 2:40-3:50 | Demo mode: **Start unseen-fault segment** once the indicator says finished (still Ask first; the button refuses otherwise). Show the report panel and causes chart. If a card appears, click **Reject**. | Read the unseen-fault narration in the numbers block above, including seed 426. "It abstained here / it proposed X; we do not claim it abstains on unseen faults." |
+| 3:50-4:30 | Point at the numbers block (or `docs/results/benchmark_v2.md`). | Quote the table with the caveats in its third column. |
+| 4:30-5:00 | Close. | "One application, scripted faults, three runs per fault type, recovery checked by the system itself, no paired baseline on faults, the forecast warns too late on memory leaks (median 18.3 s, target 30 s) but in time on gradual disk fill (86.4 s), Groq untested. Everything is reproducible from the scripts in the repository." |
+
+Autopilot is not switched on in the live 5 minutes: the rehearsals show it works (R1, R2), but one wrong-service restart on an unseen fault (seed 426) is the honest reason to demo ask-first. If a judge asks for autopilot, switch the mode and click **Start hidden challenge**; use the honest answer in the numbers block if they ask for an unseen fault.
+
+## 2. Judge-facing narration, short form
+
+- What it is: a recovery assistant prototype for one application, with ML for detection, diagnosis and root-cause ranking, deterministic policy and runbooks, and a synthetic-checkout verification.
+- What is measured: the v2 numbers block, from scripts, with sample sizes; v1 and v2 are unpaired; v2 is "fixes for the failures v1 exposed, tested on fresh seeds".
+- What it does not claim: production readiness, generalisation to other applications, reliable abstention on unseen faults, superiority over a restart script on faults (no paired v2 baseline), a useful forecast lead on memory leaks (it failed: median 18.3 s vs 30 s).
+- Approval: "In ask-first a proposal waits 120 seconds for a human and then expires without running; I approve promptly." (Rehearsal R3: a proposal nobody approved expired and that run ended unrecovered. R4: one proposal was pending in the brain for about 121 s and expired unapproved; what the dashboard displayed then cannot be established, so the cause is unresolved, neither confirmed operator error nor a confirmed dashboard defect. A later R4 proposal was approved from the dashboard and recovered.)
+- The LLM only writes the report text; it never chooses or runs an action (code-path analysis, 12 isolation tests, ten live incidents; `docs/results/llm_live.md`).
+
+## 3. Failure contingency plan
+
+| if | do |
+|---|---|
+| free RAM < 1 GB, Docker stops, or the launcher shows a FAIL | stop the live part. **There is no screen recording** (R4 was not recorded). Show the results tables (`docs/results/benchmark_v2.md`, `docs/results/demo_rehearsals.md`, `docs/results/demo_rehearsal_R4.md`, the R3b screenshots in `docs/screenshots/r3b_*.png`; `docs/screenshots/final_banner_fixture.png` is rendered from test data, not a live result, and must be called that). Say plainly that the live stack failed. Do not improvise numbers. |
+| the dashboard does not update | refresh the page; `GET http://localhost:8000/status`; "Backend offline" means the brain is down: `docker compose -p eai up -d eternalai` in window A |
+| no card about 75 s after the start (about 4 min if the previous run was a deploy or rollback: the evaluator's settle wait is 45 s or 200 s before injection) | no card does not prove a healthy draw (it can be a missed detection): wait for the indicator to say finished, click **Reveal**, start again |
+| "invalid approval token" / "Token contains invalid characters" | clear the token field and retype it by hand |
+| a card expires (120 s) before Approve | say so; wait for **finished**; **Reveal**; start another challenge |
+| the brain has a proposal pending but the Approval queue shows "Nothing waiting for approval" | not confirmed to happen (R4's expiry is unresolved). Check `GET http://localhost:8000/approvals`, refresh the page, and say so if the card still does not appear; do not approve from the terminal during the demo |
+| checkouts fail with HTTP 409 | the inventory stock ran out: `python scripts\stock_gate.py --restock --force` |
+| a run stays in **run in progress** or **restoring** for more than about 5 minutes | wait up to 3 min more for the evaluator to restore the stack; the indicator shows "evaluator not answering" if it stops responding |
+| the Demo mode panel is unusable | terminal fallback for the rest of the demo, never both: `python scripts\demo_challenge.py start`, then `status <RUN_ID>` until it is no longer running, then `reveal <RUN_ID>` |
+| a service is stuck after a failed run | `docker compose -p eai up -d --force-recreate <service>` |
+| the LLM is slow or down | nothing to do: the template report is used and recovery is unaffected (R2) |
+
+Never `docker compose down -v` and never delete a volume by hand; the export in `results/benchmark-v2/` is the evidence.
+
+## 4. Final readiness checklist
+
+- [ ] frozen export checksums verify (0 mismatches)
+- [ ] memory checklist done; free RAM above 2 GB
+- [ ] launcher: 8 PASS lines; stock check passes
+- [ ] token typed by hand; Ask first set with no error message (not proof of authentication; see 0.8)
+- [ ] Demo mode panel shows **ready**; window B open only as the terminal fallback (never mix the two methods)
+- [ ] click or type on the page once before the first run, so the new-proposal sound can play
+- [ ] fallback video: **none exists** (R4 was not recorded); the fallback is the results tables and screenshots
+- [ ] Reject: exercised only by the automated R3b, never manually by the presenter (not in R4, R5 or R5b)
+- [ ] `docs/results/benchmark_v2.md` and `docs/results/demo_rehearsals.md` open in a second tab
+- [ ] start runs only from Demo mode (the all-nine-scenarios button has been removed)
