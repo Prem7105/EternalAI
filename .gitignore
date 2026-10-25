@@ -1,0 +1,30 @@
+# secrets
+.env
+*.pem
+*.key
+*.token
+telegram.env
+approval.token
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+# workspace material never committed
+references/
+inputs/
+# data (use scripts); the FROZEN model artifacts in ml/models/artifacts/ ARE committed (about 9.5 MB, needed so a clean
+# checkout can run; their metadata records the data hash and training commit; regenerate with ml/models/train_models.py)
+ml/data/raw/
+ml/data/cache/
+*.parquet
+*.zip
+# runtime
+*.log
+.DS_Store
+ml/data/processed/
+runtime/
+ml/data/runs/
+docs/results/benchmark_smoke.jsonl
+results/demo-export/
+results/rehearsals/*.tmp
