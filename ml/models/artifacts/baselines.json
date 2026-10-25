@@ -1,0 +1,25 @@
+{
+  "name": "baselines",
+  "training_data": "105 no-action live runs (training seeds 1000-1707 and 1800-1842, 1 corrupted runs excluded), scenarios ['bad_deploy', 'cpu_burn', 'crash', 'disk_fill', 'error_spike', 'good_deploy', 'latency', 'memory_leak', 'traffic_surge']",
+  "features": [
+    "req_rate",
+    "p95_s",
+    "cpu_cores",
+    "mem_bytes",
+    "error_ratio",
+    "cpu_per_req"
+  ],
+  "git_commit": "981cc66",
+  "trained_at_utc": "2026-10-18T14:52:15Z",
+  "data_hash": "2f14ce107a0c514a36da2042c3fce893ee0c27e26327bdd5372e740abc165e39",
+  "n_runs": 105,
+  "excluded_runs": [
+    "cpu_burn_1406"
+  ],
+  "abstain_below": 0.4,
+  "ece_oof": 0.0026,
+  "ece_fault_predictions": 0.013,
+  "show_probability_in_ui": true,
+  "window_s": 10.0,
+  "seeds": "fold split seeds 0 (main CV) and 1 (nested threshold CV); model seeds 0..4 by fold index; run seeds 1000-1707 (v1) and 1800-1842 (v2 fresh)"
+}
